@@ -1,0 +1,38 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/PiggyBank.sol": {
+      "content": "//SPDX-License-Identifier: MIT\n\npragma solidity ^0.8.10;\n\nimport {Year} from \"./YearCalculator.sol\";\n\nerror PiggyBank_NotOwner();\nerror PiggyBank_InvalidAmount(uint256 amount);\n\ncontract PiggyBank{\n    using Year for uint256;\n\n    address[] private s_depositers;\n    address private immutable i_owner;\n    mapping(address => uint256) private s_addressToAmountDeposited;\n    mapping(address => uint256) private s_addressToTimer;\n\n    event DepositAmount(address indexed user, uint256 fund);\n    event WithDrawAmount(address indexed user, uint256 fund); \n\n    modifier onlyOwner(){\n        if(msg.sender != i_owner){\n            revert PiggyBank_NotOwner();\n        }\n        _;\n    }\n\n    constructor(){\n        i_owner = msg.sender;\n    }\n\n    function setTimer(uint256 _year) external{\n        s_addressToTimer[msg.sender] = _year.convertToBlockYear();\n    }\n\n    function deposit() public payable{\n        if(msg.value <= 0){\n            revert PiggyBank_InvalidAmount(msg.value);\n        }\n        \n        s_depositers.push(msg.sender);\n        s_addressToAmountDeposited[msg.sender] += msg.value;\n        \n        emit DepositAmount(msg.sender, msg.value);\n    }\n\n    function withdraw() external {\n        require(block.timestamp >= s_addressToTimer[msg.sender], \"should be more than or equal to the set time\");\n\n        uint256 fund = s_addressToAmountDeposited[msg.sender];\n        s_addressToAmountDeposited[msg.sender] = 0;\n        s_addressToTimer[msg.sender] = 0;\n\n        (bool callSuccess,) = payable(msg.sender).call{value: fund}(\"\");\n        require(callSuccess, \"Call Failed\");\n\n        emit WithDrawAmount(msg.sender, fund);\n    }\n\n    function getBalance() external view returns (uint256){\n        return s_addressToAmountDeposited[msg.sender];\n    }\n\n    function getTimer() external view returns (uint256){\n        return s_addressToTimer[msg.sender];\n    }\n\n    function getOwner() external view returns (address){\n        return i_owner;\n    }\n\n    function getDepositer(uint256 _index) external view returns (address) {\n        return s_depositers[_index];\n    }\n    \n    receive() external payable{\n        deposit();\n    }\n\n    fallback() external payable{\n        deposit();\n    }\n}"
+    },
+    "contracts/YearCalculator.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\npragma solidity ^0.8.10;\n\nlibrary Year{\n    function convertToBlockYear(uint256 _year) internal view returns(uint256 blockYear){\n        uint256 secondInYear = 365 * 24 * 60 * 60;\n        blockYear = block.timestamp + (_year * secondInYear);\n    }\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
