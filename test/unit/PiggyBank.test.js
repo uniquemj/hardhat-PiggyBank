@@ -20,6 +20,18 @@ describe("PiggyBank", async() => {
         })
     })
 
+    describe("Timer", async() =>{
+        it("sets the timer", async() =>{
+            const set_timer = await piggyBank.setTimer(1)
+            const timer = (await piggyBank.getTimer()).toString()
+            
+            const blockTime = (await ethers.provider.getBlock('latest')).timestamp;
+            const yearTime = 1*365*24*60*60
+            const testTime = (blockTime + yearTime).toString()
+
+            assert.equal(timer, testTime)
+        })
+    })
     describe("Deposit", async () =>{
         it("Fails if ETH is less than or equal to 0", async () =>{
             await expect(piggyBank.deposit()).to.be.reverted;
